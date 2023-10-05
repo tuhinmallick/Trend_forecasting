@@ -1,6 +1,7 @@
 """
 Preprocesses images to reduce noise and generate dataset for training
 """
+
 import cv2
 import glob
 from model import Deeplabv3
@@ -11,7 +12,7 @@ from sklearn.cluster import KMeans
 from pprint import pprint
 
 image_dir = 'C:/Users/usaid/Desktop/FashionTrends/Image_Data/Chictopia/Parsed/'
-images = glob.glob(image_dir + '*.jpg')
+images = glob.glob(f'{image_dir}*.jpg')
 
 #Initialize DeepLab model
 deeplab_model = Deeplabv3()
@@ -32,9 +33,9 @@ for img in images:
    labels = np.argmax(res.squeeze(),-1)
    print(labels[:512 - pad_x, :512 - pad_y].shape)
    np.place(labels, labels != 15, [0])
-   if(15 in labels):
+   if (15 in labels):
       np.place(labels, labels == 15, [255])
-   
+
       #Applying mask to convert non-human elements to black background
       masked_image = cv2.bitwise_and(resized_original, resized_original, mask=labels[:512 - pad_x, :512 - pad_y].astype(np.uint8))
       #Locate human elements (not-black)
@@ -84,11 +85,15 @@ for img in images:
          final[labels_reshaped[:, :, 0] == ix] = kmeans.cluster_centers_[ix]
          i = np.where(order[:, 0] == ix)[0][0]
          final_flat[labels_reshaped[:, :, 0] == ix] = i
-      
-      cv2.imwrite(image_dir + "Clustered/" + os.path.basename(img), final)
+
+      cv2.imwrite(f"{image_dir}Clustered/{os.path.basename(img)}", final)
       #I also save a Numpy array of the clusters (a 2D array of cluster labels) for training to test 
       #whether training just based on clusters rather than colors affects accuracy of model
-      np.save(image_dir + "Clustered/" + os.path.basename(img).replace('.jpg', '.npy'), final_flat)
+      np.save(
+          f"{image_dir}Clustered/" +
+          os.path.basename(img).replace('.jpg', '.npy'),
+          final_flat,
+      )
    else:
-      cv2.imwrite(image_dir + "NotHuman/" + os.path.basename(img), image)
+      cv2.imwrite(f"{image_dir}NotHuman/{os.path.basename(img)}", image)
    i += 1

@@ -34,7 +34,7 @@ def parsePage(url):
    tagStr = ''
    for tag in tags:
       print(tag.text)
-      tagStr += tag.text + ';'
+      tagStr += f'{tag.text};'
    print("DESCRIPTION:")
    desc = soup.find('div', attrs={'id':'photo_description'}).find('p')
    if desc is not None:
@@ -49,7 +49,7 @@ def parsePage(url):
          color += tag.text
       if tag.has_attr('class'):
          type += tag.text
-         clothingStr += color + ':' + type + ';'
+         clothingStr += f'{color}:{type};'
          color = ''
          type = ''
    return (url.encode('utf-8'), dateText, userText.encode('utf-8'), tagStr.encode('utf-8'), descText.encode('utf-8'), clothingStr.encode('utf-8'))
@@ -62,7 +62,7 @@ lastPage = 40
 with open('shirts.csv', mode='w') as file:
    writer = csv.writer(file, delimiter=',', lineterminator='\n')
    for index in range(pageIndex, lastPage + 1):
-      page = http.request('GET', url + '/' + str(index))
+      page = http.request('GET', f'{url}/{str(index)}')
       soup = BeautifulSoup(page.data)
       imageTile = soup.findAll('div', attrs={'class':'photo_hover'})
       for tile in imageTile:
@@ -75,7 +75,7 @@ url = 'http://chictopia.com/Skirt/info'
 with open('skirts.csv', mode='w') as file:
    writer = csv.writer(file, delimiter=',', lineterminator='\n')
    for index in range(pageIndex, lastPage + 1):
-      page = http.request('GET', url + '/' + str(index))
+      page = http.request('GET', f'{url}/{str(index)}')
       soup = BeautifulSoup(page.data)
       imageTile = soup.findAll('div', attrs={'class':'photo_hover'})
       for tile in imageTile:
@@ -88,7 +88,7 @@ url = 'http://chictopia.com/Pant/info'
 with open('pants.csv', mode='w') as file:
    writer = csv.writer(file, delimiter=',', lineterminator='\n')
    for index in range(pageIndex, lastPage + 1):
-      page = http.request('GET', url + '/' + str(index))
+      page = http.request('GET', f'{url}/{str(index)}')
       soup = BeautifulSoup(page.data)
       imageTile = soup.findAll('div', attrs={'class':'photo_hover'})
       for tile in imageTile:
@@ -101,7 +101,7 @@ url = 'http://chictopia.com/Dress/info'
 with open('dresses.csv', mode='w') as file:
    writer = csv.writer(file, delimiter=',', lineterminator='\n')
    for index in range(pageIndex, lastPage + 1):
-      page = http.request('GET', url + '/' + str(index))
+      page = http.request('GET', f'{url}/{str(index)}')
       soup = BeautifulSoup(page.data)
       imageTile = soup.findAll('div', attrs={'class':'photo_hover'})
       for tile in imageTile:
