@@ -28,7 +28,7 @@ def get_xception_filename(key):
     filename = filename.replace('_weights', '_kernel')
     filename = filename.replace('_biases', '_bias')
 
-    return filename + '.npy'
+    return f'{filename}.npy'
 
 
 def get_mobilenetv2_filename(key):
@@ -47,7 +47,7 @@ def get_mobilenetv2_filename(key):
     filename = filename.replace('_weights', '_kernel')
     filename = filename.replace('_biases', '_bias')
 
-    return filename + '.npy'
+    return f'{filename}.npy'
 
 
 def extract_tensors_from_checkpoint_file(filename, output_folder='weights', net_name=None):

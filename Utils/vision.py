@@ -111,10 +111,7 @@ class VisionPipeline:
         Return:
             A list of numpy.ndarray where each one represents a contour.
         """
-        if(external_only):
-            mode = cv2.RETR_EXTERNAL
-        else:
-            mode = cv2.RETR_LIST
+        mode = cv2.RETR_EXTERNAL if external_only else cv2.RETR_LIST
         method = cv2.CHAIN_APPROX_SIMPLE
         im2, contours, hierarchy =cv2.findContours(input, mode=mode, method=method)
         return contours

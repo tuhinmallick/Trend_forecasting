@@ -131,14 +131,25 @@ def SepConv_BN(x, filters, prefix, stride=1, kernel_size=3, rate=1, depth_activa
 
     if not depth_activation:
         x = Activation('relu')(x)
-    x = DepthwiseConv2D((kernel_size, kernel_size), strides=(stride, stride), dilation_rate=(rate, rate),
-                        padding=depth_padding, use_bias=False, name=prefix + '_depthwise')(x)
-    x = BatchNormalization(name=prefix + '_depthwise_BN', epsilon=epsilon)(x)
+    x = DepthwiseConv2D(
+        (kernel_size, kernel_size),
+        strides=(stride, stride),
+        dilation_rate=(rate, rate),
+        padding=depth_padding,
+        use_bias=False,
+        name=f'{prefix}_depthwise',
+    )(x)
+    x = BatchNormalization(name=f'{prefix}_depthwise_BN', epsilon=epsilon)(x)
     if depth_activation:
         x = Activation('relu')(x)
-    x = Conv2D(filters, (1, 1), padding='same',
-               use_bias=False, name=prefix + '_pointwise')(x)
-    x = BatchNormalization(name=prefix + '_pointwise_BN', epsilon=epsilon)(x)
+    x = Conv2D(
+        filters,
+        (1, 1),
+        padding='same',
+        use_bias=False,
+        name=f'{prefix}_pointwise',
+    )(x)
+    x = BatchNormalization(name=f'{prefix}_pointwise_BN', epsilon=epsilon)(x)
     if depth_activation:
         x = Activation('relu')(x)
 
@@ -163,18 +174,17 @@ def _conv2d_same(x, filters, prefix, stride=1, kernel_size=3, rate=1):
                       padding='same', use_bias=False,
                       dilation_rate=(rate, rate),
                       name=prefix)(x)
-    else:
-        kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
-        pad_total = kernel_size_effective - 1
-        pad_beg = pad_total // 2
-        pad_end = pad_total - pad_beg
-        x = ZeroPadding2D((pad_beg, pad_end))(x)
-        return Conv2D(filters,
-                      (kernel_size, kernel_size),
-                      strides=(stride, stride),
-                      padding='valid', use_bias=False,
-                      dilation_rate=(rate, rate),
-                      name=prefix)(x)
+    kernel_size_effective = kernel_size + (kernel_size - 1) * (rate - 1)
+    pad_total = kernel_size_effective - 1
+    pad_beg = pad_total // 2
+    pad_end = pad_total - pad_beg
+    x = ZeroPadding2D((pad_beg, pad_end))(x)
+    return Conv2D(filters,
+                  (kernel_size, kernel_size),
+                  strides=(stride, stride),
+                  padding='valid', use_bias=False,
+                  dilation_rate=(rate, rate),
+                  name=prefix)(x)
 
 
 def _xception_block(inputs, depth_list, prefix, skip_connection_type, stride,
@@ -192,28 +202,31 @@ def _xception_block(inputs, depth_list, prefix, skip_connection_type, stride,
             """
     residual = inputs
     for i in range(3):
-        residual = SepConv_BN(residual,
-                              depth_list[i],
-                              prefix + '_separable_conv{}'.format(i + 1),
-                              stride=stride if i == 2 else 1,
-                              rate=rate,
-                              depth_activation=depth_activation)
+        residual = SepConv_BN(
+            residual,
+            depth_list[i],
+            f'{prefix}_separable_conv{i + 1}',
+            stride=stride if i == 2 else 1,
+            rate=rate,
+            depth_activation=depth_activation,
+        )
         if i == 1:
             skip = residual
     if skip_connection_type == 'conv':
-        shortcut = _conv2d_same(inputs, depth_list[-1], prefix + '_shortcut',
-                                kernel_size=1,
-                                stride=stride)
-        shortcut = BatchNormalization(name=prefix + '_shortcut_BN')(shortcut)
+        shortcut = _conv2d_same(
+            inputs,
+            depth_list[-1],
+            f'{prefix}_shortcut',
+            kernel_size=1,
+            stride=stride,
+        )
+        shortcut = BatchNormalization(name=f'{prefix}_shortcut_BN')(shortcut)
         outputs = layers.add([residual, shortcut])
     elif skip_connection_type == 'sum':
         outputs = layers.add([residual, inputs])
     elif skip_connection_type == 'none':
         outputs = residual
-    if return_skip:
-        return outputs, skip
-    else:
-        return outputs
+    return (outputs, skip) if return_skip else outputs
 
 
 def relu6(x):
@@ -235,41 +248,54 @@ def _inverted_res_block(inputs, expansion, stride, alpha, filters, block_id, ski
     pointwise_conv_filters = int(filters * alpha)
     pointwise_filters = _make_divisible(pointwise_conv_filters, 8)
     x = inputs
-    prefix = 'expanded_conv_{}_'.format(block_id)
+    prefix = f'expanded_conv_{block_id}_'
     if block_id:
         # Expand
 
-        x = Conv2D(expansion * in_channels, kernel_size=1, padding='same',
-                   use_bias=False, activation=None,
-                   name=prefix + 'expand')(x)
-        x = BatchNormalization(epsilon=1e-3, momentum=0.999,
-                               name=prefix + 'expand_BN')(x)
-        x = Activation(relu6, name=prefix + 'expand_relu')(x)
+        x = Conv2D(
+            expansion * in_channels,
+            kernel_size=1,
+            padding='same',
+            use_bias=False,
+            activation=None,
+            name=f'{prefix}expand',
+        )(x)
+        x = BatchNormalization(
+            epsilon=1e-3, momentum=0.999, name=f'{prefix}expand_BN'
+        )(x)
+        x = Activation(relu6, name=f'{prefix}expand_relu')(x)
     else:
         prefix = 'expanded_conv_'
     # Depthwise
-    x = DepthwiseConv2D(kernel_size=3, strides=stride, activation=None,
-                        use_bias=False, padding='same', dilation_rate=(rate, rate),
-                        name=prefix + 'depthwise')(x)
-    x = BatchNormalization(epsilon=1e-3, momentum=0.999,
-                           name=prefix + 'depthwise_BN')(x)
+    x = DepthwiseConv2D(
+        kernel_size=3,
+        strides=stride,
+        activation=None,
+        use_bias=False,
+        padding='same',
+        dilation_rate=(rate, rate),
+        name=f'{prefix}depthwise',
+    )(x)
+    x = BatchNormalization(
+        epsilon=1e-3, momentum=0.999, name=f'{prefix}depthwise_BN'
+    )(x)
 
-    x = Activation(relu6, name=prefix + 'depthwise_relu')(x)
+    x = Activation(relu6, name=f'{prefix}depthwise_relu')(x)
 
     # Project
-    x = Conv2D(pointwise_filters,
-               kernel_size=1, padding='same', use_bias=False, activation=None,
-               name=prefix + 'project')(x)
-    x = BatchNormalization(epsilon=1e-3, momentum=0.999,
-                           name=prefix + 'project_BN')(x)
+    x = Conv2D(
+        pointwise_filters,
+        kernel_size=1,
+        padding='same',
+        use_bias=False,
+        activation=None,
+        name=f'{prefix}project',
+    )(x)
+    x = BatchNormalization(
+        epsilon=1e-3, momentum=0.999, name=f'{prefix}project_BN'
+    )(x)
 
-    if skip_connection:
-        return Add(name=prefix + 'add')([inputs, x])
-
-    # if in_channels == pointwise_filters and stride == 1:
-    #    return Add(name='res_connect_' + str(block_id))([inputs, x])
-
-    return x
+    return Add(name=f'{prefix}add')([inputs, x]) if skip_connection else x
 
 
 def Deeplabv3(weights='pascal_voc', input_tensor=None, input_shape=(512, 512, 3), classes=21, backbone='mobilenetv2', OS=16, alpha=1.):
@@ -311,7 +337,7 @@ def Deeplabv3(weights='pascal_voc', input_tensor=None, input_shape=(512, 512, 3)
 
     """
 
-    if not (weights in {'pascal_voc', None}):
+    if weights not in {'pascal_voc', None}:
         raise ValueError('The `weights` argument should be either '
                          '`None` (random initialization) or `pascal_voc` '
                          '(pre-trained on PASCAL VOC)')
@@ -320,18 +346,17 @@ def Deeplabv3(weights='pascal_voc', input_tensor=None, input_shape=(512, 512, 3)
         raise RuntimeError('The Deeplabv3+ model is only available with '
                            'the TensorFlow backend.')
 
-    if not (backbone in {'xception', 'mobilenetv2'}):
+    if backbone not in {'xception', 'mobilenetv2'}:
         raise ValueError('The `backbone` argument should be either '
                          '`xception`  or `mobilenetv2` ')
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
-    else:
-        if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
+    elif K.is_keras_tensor(input_tensor):
+        img_input = input_tensor
 
+    else:
+        img_input = Input(tensor=input_tensor, shape=input_shape)
     if backbone == 'xception':
         if OS == 8:
             entry_block3_stride = 1
@@ -364,9 +389,15 @@ def Deeplabv3(weights='pascal_voc', input_tensor=None, input_shape=(512, 512, 3)
                             skip_connection_type='conv', stride=entry_block3_stride,
                             depth_activation=False)
         for i in range(16):
-            x = _xception_block(x, [728, 728, 728], 'middle_flow_unit_{}'.format(i + 1),
-                                skip_connection_type='sum', stride=1, rate=middle_block_rate,
-                                depth_activation=False)
+            x = _xception_block(
+                x,
+                [728, 728, 728],
+                f'middle_flow_unit_{i + 1}',
+                skip_connection_type='sum',
+                stride=1,
+                rate=middle_block_rate,
+                depth_activation=False,
+            )
 
         x = _xception_block(x, [728, 1024, 1024], 'exit_flow_block1',
                             skip_connection_type='conv', stride=1, rate=exit_block_rates[0],
@@ -498,11 +529,7 @@ def Deeplabv3(weights='pascal_voc', input_tensor=None, input_shape=(512, 512, 3)
 
     # Ensure that the model takes into account
     # any potential predecessors of `input_tensor`.
-    if input_tensor is not None:
-        inputs = get_source_inputs(input_tensor)
-    else:
-        inputs = img_input
-
+    inputs = img_input if input_tensor is None else get_source_inputs(input_tensor)
     model = Model(inputs, x, name='deeplabv3plus')
 
     # load weights
